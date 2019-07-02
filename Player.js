@@ -1,21 +1,23 @@
-class Player{
-	constructor(user, group) {
-		this.user = user;
-		this.network = new synaptic.Architect.Perceptron(3, 6, 1);
-		this.score = 0;
-		this.distance = 0;
+function Player(user, group, brain) {
+    this.user = user;
+    this.score = 0;
+    this.distance = 0;
 
-		this.body = Bodies.rectangle(150, config.height / 2, config.bird_width, config.bird_height, {
-	        render: {fillStyle: config.bird_color},
-	        id: Math.floor(Math.random() * 1000),
-	        alive: true,
-	        collisionFilter: {
-	           	group: group,
-	        },
-	    });   
-	}
+    this.brain = brain;
+    this.brain.score = 0;
 
-	getData(pipes){
+    this.body = Bodies.rectangle(150, config.height / 2, config.bird_width, config.bird_height, {
+        render: {fillStyle: config.bird_color},
+        id: Math.floor(Math.random() * 1000),
+        alive: true,
+        collisionFilter: {
+            group: group,
+        },
+    });
+}
+
+Player.prototype = {
+    getData(pipes){
 		console.log(this.score);
 		if (this.body.alive){
 			this.distance++;

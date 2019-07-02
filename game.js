@@ -62,7 +62,9 @@ Runner.run(runner, engine);
 let pop = [],
     pipes = [],
     intervalWalls = null,
-    intervalGame = null;
+    intervalGame = null,
+    intervalIA = null,
+    neat = null;
 
 let group = Body.nextGroup(true);
 //let bird = new Player(true, group);
@@ -73,19 +75,15 @@ Events.on(engine, 'collisionStart', function(e) {
     for (let pair of pairs) {
         if (pair.bodyA.id < 1000 && pair.bodyB.id > 10000){
             pair.bodyA.alive = false;
-            console.log('caca');
         }
         if (pair.bodyB.id < 1000 && pair.bodyA.id > 10000){
             pair.bodyB.alive = false;
-            console.log('caca');
         }
-            //console.log('loser');
-            //start();
     }
 });
 
 
-var createWalls = () => {
+let createWalls = () => {
     let posY = Math.floor(Math.random() * (config.height - 200));
 
     pipes.push(Bodies.rectangle(config.width, - 50, config.pipe_width, posY * 2, {
@@ -104,8 +102,7 @@ var createWalls = () => {
     World.add(world, pipes);
 };
 
-var walling = () => {
-    minWidth = 500;
+let walling = () => {
     pipes.map((pipe) => {
         if (pipe.position.x < 0){
             World.remove(world, pipe);
@@ -115,7 +112,6 @@ var walling = () => {
         }
         Body.translate(pipe, {x: -3, y: 0})
     });
-    //ia();
 };
 
 
@@ -129,7 +125,7 @@ var walling = () => {
     }
 };*/
 
-start = () => {
+let start = () => {
     clearInterval(intervalWalls);
     intervalWalls = setInterval(createWalls, 3000);
     clearInterval(intervalGame);
@@ -146,8 +142,8 @@ start = () => {
 
 
     pipes = [];
-    World.clear(world);
 
+    World.clear(world);
     World.add(world, [
         //bird.body,
         //Start Limite du terrain
@@ -167,38 +163,66 @@ start = () => {
         }),
     //Fin Limite du terrain
     ]);
-    iaInit();
-}
-iaInit = () => {
-    pop = [];
-    for (let i = 0; i < 10; i++){
-        let birdo = new Player(false, group);
-        pop.push(birdo);
+};
+let iaInit = () => {
+    neat = new neataptic.Neat(2, 1, (player) => {
+            console.log(player.score);
+            return player.distance + player.score * 100;
+        },
+        {
+            mutation: neataptic.methods.mutation.ALL,
+            popsize: 10,
+            elitism: Math.round(0.2 * 10),
+            network: new neataptic.architect.Random(2, 6, 1)
+        }
+    );
+};
+
+let iaStart = () => {
+    players = [];
+    highestScore = 0;
+
+    for(let genome in neat.population){
+        genome = neat.population[genome];
+        let birdo = new Player(false, group, genome);
+
         birdo.body.isStatic = true;
         setTimeout(() => {
             birdo.body.isStatic = false;
             Body.setVelocity(birdo.body, {x: 0, y: Math.random() * -10})
 
-        }, 4000);   
+        }, 4000);
     }
-    World.add(world, pop.map((guy) => {return guy.body}));
-}
+};
+
+let iaEnd = () => {
+    clearInterval(intervalIA);
+    console.log('Generation:', neat.generation, '- average score:', neat.getAverage());
+
+    neat.sort();
+    let newPopulation = [];
+
+    // Elitism
+    for(let i = 0; i < neat.elitism; i++){
+        newPopulation.push(neat.population[i]);
+    }
+
+    // Breed the next individuals
+    for(let i = 0; i < neat.popsize - neat.elitism; i++){
+        newPopulation.push(neat.getOffspring());
+    }
+
+    // Replace the old population with the new population
+    neat.population = newPopulation;
+    neat.mutate();
+
+    neat.generation++;
+};
+
+
 start();
+iaInit();
 
 
-var rate = .3;
-ia = () => {
-    pop.map((birdo) => {
-        if (birdo.body.alive){
-            birdo.network.activate(birdo.getData(pipes));
-        }
-    });
-    
-    //console.log(network.activate([dwidth, dheight]));
-    //if (network.activate([dwidth, dheight]) > .55) {
-    //    Body.setVelocity(bird, {x: 0, y: config.jump_force});
-    //}
-    //network.propagate(rate, [distance / 10000]);
 
-}
 
