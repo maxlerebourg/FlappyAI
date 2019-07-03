@@ -5,8 +5,8 @@ let config = {
 
     bridge_nb_tiles: 17,
 
-    bird_width: 50,
-    bird_height: 50,
+    bird_width: 30,
+    bird_height: 30,
     bird_density: 0.06,
     bird_color: '#FF0',
 
@@ -16,7 +16,7 @@ let config = {
     ground_color: '#555',
     pipe_color: '#050',
 
-    pipe_space: 90,
+    pipe_space: 100,
     pipe_width: 100,
 
 };
@@ -67,8 +67,56 @@ let pop = [],
     neat = null;
 
 let group = Body.nextGroup(true);
-//let bird = new Player(true, group);
+let bird = new Player(true, group);
 
+
+let createWalls = () => {
+    let posY = Math.floor(Math.random() * (config.height - 250) + 125);
+    //console.log(Math.floor((posY + config.pipe_space / 2) / 2) + ' '+Math.floor((config.height - posY + config.pipe_space / 2) / 2))
+    
+    var h1 = config.height - posY - config.pipe_space;
+    var h2 = posY  - config.pipe_space;
+
+    var y1 = h1 / 2;
+    var y2 = config.height - h2 / 2; 
+
+    pipes.push(Bodies.rectangle(
+        config.width,
+        y1, 
+        config.pipe_width, 
+        h1, {
+            render: {fillStyle: config.pipe_color},
+            isStatic: true,
+            id: Math.floor(Math.random() * 1000) + 10000,
+            alive: true,
+            posY: posY,
+        }));
+    pipes.push(Bodies.rectangle(
+        config.width, 
+        y2, 
+        config.pipe_width, 
+        h2, {
+            render: {fillStyle: config.pipe_color},
+            isStatic: true,
+            id: Math.floor(Math.random() * 1000) + 10000,
+            alive: false,
+        }));
+    World.add(world, pipes);
+};
+
+let moveWalls = () => {
+    pipes.map((pipe) => {
+        if (pipe.position.x < 0){
+            World.remove(world, pipe);
+        }
+        if (pipe.position.x < -20){
+            pipes.splice(pipe, 1);
+        }
+        Body.translate(pipe, {x: -3, y: 0})
+    });
+};
+
+Events.on(engine, 'tick', moveWalls);
 
 Events.on(engine, 'collisionStart', function(e) {
     let pairs = e.pairs;
@@ -82,45 +130,12 @@ Events.on(engine, 'collisionStart', function(e) {
     }
 });
 
-
-let createWalls = () => {
-    let posY = Math.floor(Math.random() * (config.height - 200));
-
-    pipes.push(Bodies.rectangle(config.width, - 50, config.pipe_width, posY * 2, {
-            render: {fillStyle: config.pipe_color},
-            isStatic: true,
-            id: Math.floor(Math.random() * 1000) + 10000,
-            alive: true,
-            posY: posY,
-        }));
-    pipes.push(Bodies.rectangle(config.width, config.height + 50, config.pipe_width, config.height - (posY - config.pipe_space) * 2, {
-            render: {fillStyle: config.pipe_color},
-            isStatic: true,
-            id: Math.floor(Math.random() * 1000) + 10000,
-            alive: false,
-        }));
-    World.add(world, pipes);
-};
-
-let walling = () => {
-    pipes.map((pipe) => {
-        if (pipe.position.x < 0){
-            World.remove(world, pipe);
-        }
-        if (pipe.position.x < -20){
-            pipes.splice(pipe, 1);
-        }
-        Body.translate(pipe, {x: -3, y: 0})
-    });
-};
-
-
 //Controle of the player
 /*document.onkeydown = function (e) {
     //console.log(e.code);
     switch (e.code) {
         case "ArrowUp":
-            Body.setVelocity(bird.body, {x: 0, y: config.jump_force});
+            bird.jump();
             break;
     }
 };*/
@@ -128,17 +143,13 @@ let walling = () => {
 let start = () => {
     clearInterval(intervalWalls);
     intervalWalls = setInterval(createWalls, 3000);
-    clearInterval(intervalGame);
-    setTimeout(() => {
-        intervalGame = setInterval(() =>{
-            walling();
-            //bird.getData(pipes);
-        },10)}, 
-    3000);
-
     
-    //bird.body.isStatic = true;
-    //setTimeout(() => {bird.body.isStatic = false;}, 4000)
+    
+    clearInterval(intervalGame);
+    setTimeout(() => {intervalGame = setInterval(() =>{bird.getData(pipes);},10)}, 3000);
+
+    bird.body.isStatic = true;
+    setTimeout(() => {bird.body.isStatic = false;}, 4000)
 
 
     pipes = [];
@@ -151,6 +162,7 @@ let start = () => {
             isStatic: true,
             id: 10000,
             render: {
+                visible: false,
                 fillStyle: config.ground_color,
             },
         }),
@@ -176,6 +188,7 @@ let iaInit = () => {
             network: new neataptic.architect.Random(2, 6, 1)
         }
     );
+    iaStart();
 };
 
 let iaStart = () => {
@@ -186,6 +199,8 @@ let iaStart = () => {
         genome = neat.population[genome];
         let birdo = new Player(false, group, genome);
 
+        
+
         birdo.body.isStatic = true;
         setTimeout(() => {
             birdo.body.isStatic = false;
@@ -193,10 +208,11 @@ let iaStart = () => {
 
         }, 4000);
     }
+    setInterval(() => {neat.population.map((el)=>{el.ia()})}, 10);
 };
 
 let iaEnd = () => {
-    clearInterval(intervalIA);
+    //clearInterval(intervalIA);
     console.log('Generation:', neat.generation, '- average score:', neat.getAverage());
 
     neat.sort();
@@ -219,9 +235,9 @@ let iaEnd = () => {
     neat.generation++;
 };
 
+iaInit();
 
 start();
-iaInit();
 
 
 
