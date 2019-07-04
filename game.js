@@ -103,6 +103,15 @@ let createWalls = () => {
         }));
     World.add(world, pipes);
 };
+let ia = () => {
+    let i = false;
+    //console.log(pop[1].getData());
+    pop.map(el => {
+        el.ia();
+        el.body.alive ? i = true : null;
+    });
+    if (!i) iaEnd();
+};
 
 let moveWalls = () => {
     pipes.map((pipe) => {
@@ -128,42 +137,67 @@ Events.on(engine, 'collisionStart', function(e) {
         }
     }
 });
-setInterval(() => {
-    let i = false;
-    //console.log(pop[1].getData());
-    pop.map(el => {
-        el.ia();
-        el.body.alive ? i = true : null;
-    });
-    if (!i) iaEnd();
-}, 50);
+
 
 let player = () => {
     bird = new Player(true, group, null);
+
     clearInterval(intervalGame);
-    intervalGame = setInterval(() =>{console.log(bird.getData(pipes));},1000);
+    intervalGame = setInterval(() =>{console.log(bird.getData());},10);
+    
     bird.body.isStatic = true;
     setTimeout(() => {bird.body.isStatic = false;}, 4000);
 
     World.add(world, bird.body);
     document.onkeydown = function (e) {
-        //console.log(e.code);
         switch (e.code) {
             case "ArrowUp":
                 bird.jump();
+                break;
+            case "ArrowLeft":
+                Runner.stop(runner);
+                clearInterval(intervalGame);
+                clearInterval(intervalWalls);
+                break;
+            case "ArrowRight":
+                Runner.start(runner, engine);
+                intervalGame = setInterval(() =>{console.log(bird.getData());},10);
+                intervalWalls = setInterval(createWalls, 4500);
                 break;
         }
     };
 };
 //Controle of the player
-
+let running = true;
+document.onkeydown = function (e) {
+        switch (e.code) {
+            case "ArrowLeft":
+                if (running){
+                    running = !running;
+                    Runner.stop(runner);
+                    console.log(pop.find(el => {return el.body.alive}).getData());
+                    clearTimeout(intervalGame);
+                    clearInterval(intervalGame);
+                    clearInterval(intervalWalls);
+                } else {
+                    running = !running;
+                    Runner.start(runner, engine);
+                    clearTimeout(intervalGame);
+                    clearInterval(intervalGame);
+                    clearInterval(intervalWalls);
+                    intervalGame = setInterval(ia, 50);
+                    intervalWalls = setInterval(createWalls, 3500);
+                }
+                break;
+        }
+    };
 
 let start = () => {
     World.clear(world);
 
     pipes = [];
     clearInterval(intervalWalls);
-    intervalWalls = setInterval(createWalls, 3000);
+    intervalWalls = setInterval(createWalls, 3500);
 
 
     World.add(world, [
@@ -190,11 +224,11 @@ let start = () => {
 
 };
 let iaInit = () => {
-    neat = new neataptic.Neat(2, 1, null,
+    neat = new neataptic.Neat(2, 1, popu => {console.log(popu.brain.score)},
         {
             mutation: neataptic.methods.mutation.ALL,
-            popsize: 100,
-            elitism: Math.round(0.1 * 100),
+            popsize: 10,
+            elitism: Math.round(0.2 * 10),
             network: new neataptic.architect.Random(2, 6, 1)
         }
     );
@@ -211,26 +245,32 @@ let iaStart = () => {
         birdo.body.isStatic = true;
         setTimeout(() => {
             birdo.body.isStatic = false;
-            Body.setVelocity(birdo.body, {x: 0, y: Math.random() * -10})
-
-        }, 3000);
+            Body.setVelocity(birdo.body, {x: 0, y: Math.random() * - 10 + 5})
+        }, 5000);
         pop.push(birdo);
 
 
     }
+    intervalGame = setTimeout(() => {
+        intervalGame = setInterval(ia, 50);
+    }, 5000);
     World.add(world, pop.map(el => {return el.body}));
+
 };
 let iaEnd = () => {
+    clearInterval(intervalGame);
     neat.sort();
-    pop.map(el => {
-        hightestScore < el.brain.score ? hightestScore = el.brain.score: null;
-        el.brain.score = 0;
-    });
+    pop.map(el => {hightestScore < el.brain.score ? hightestScore = el.brain.score: null;});
+
+
     console.log('Generation:', neat.generation, '- average score:', neat.getAverage() + '- hightest score:' + hightestScore);
+    
+    
     hightestScore = 0;
 
     pop = [];
 
+    pop.map(el => {el.brain.score = 0;});
 
     let newPopulation = [];
 
