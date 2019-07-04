@@ -63,11 +63,11 @@ let pop = [],
     pipes = [],
     intervalWalls = null,
     intervalGame = null,
-    intervalIA = null,
-    neat = null;
+    neat = null,
+    hightestScore = null;
 
 let group = Body.nextGroup(true);
-let bird = new Player(true, group);
+let bird = null;
 
 
 let createWalls = () => {
@@ -115,9 +115,8 @@ let moveWalls = () => {
         Body.translate(pipe, {x: -3, y: 0})
     });
 };
-
 Events.on(engine, 'tick', moveWalls);
-
+//setInterval(moveWalls,1000);
 Events.on(engine, 'collisionStart', function(e) {
     let pairs = e.pairs;
     for (let pair of pairs) {
@@ -129,44 +128,54 @@ Events.on(engine, 'collisionStart', function(e) {
         }
     }
 });
+setInterval(() => {
+    let i = false;
+    //console.log(pop[1].getData());
+    pop.map(el => {
+        el.ia();
+        el.body.alive ? i = true : null;
+    });
+    if (!i) iaEnd();
+}, 50);
 
+let player = () => {
+    bird = new Player(true, group, null);
+    clearInterval(intervalGame);
+    intervalGame = setInterval(() =>{console.log(bird.getData(pipes));},1000);
+    bird.body.isStatic = true;
+    setTimeout(() => {bird.body.isStatic = false;}, 4000);
+
+    World.add(world, bird.body);
+    document.onkeydown = function (e) {
+        //console.log(e.code);
+        switch (e.code) {
+            case "ArrowUp":
+                bird.jump();
+                break;
+        }
+    };
+};
 //Controle of the player
-/*document.onkeydown = function (e) {
-    //console.log(e.code);
-    switch (e.code) {
-        case "ArrowUp":
-            bird.jump();
-            break;
-    }
-};*/
+
 
 let start = () => {
-    clearInterval(intervalWalls);
-    intervalWalls = setInterval(createWalls, 3000);
-    
-    
-    clearInterval(intervalGame);
-    setTimeout(() => {intervalGame = setInterval(() =>{bird.getData(pipes);},10)}, 3000);
-
-    bird.body.isStatic = true;
-    setTimeout(() => {bird.body.isStatic = false;}, 4000)
-
+    World.clear(world);
 
     pipes = [];
+    clearInterval(intervalWalls);
+    intervalWalls = setInterval(createWalls, 3000);
 
-    World.clear(world);
+
     World.add(world, [
-        //bird.body,
         //Start Limite du terrain
-        Bodies.rectangle(config.width / 2, 0, config.width, 10, {
+        Bodies.rectangle(config.width / 2, -25, config.width, 60, {
             isStatic: true,
-            id: 10000,
+            id: Math.floor(Math.random() * 1000) + 10000,
             render: {
-                visible: false,
                 fillStyle: config.ground_color,
             },
         }),
-        Bodies.rectangle(config.width / 2, config.height, config.width, 10, {
+        Bodies.rectangle(config.width / 2, config.height + 25, config.width, 60, {
             isStatic: true,
             id: Math.floor(Math.random() * 1000) + 10000,
             render: {
@@ -175,16 +184,17 @@ let start = () => {
         }),
     //Fin Limite du terrain
     ]);
+
+
+    //player();
+
 };
 let iaInit = () => {
-    neat = new neataptic.Neat(2, 1, (player) => {
-            console.log(player.score);
-            return player.distance + player.score * 100;
-        },
+    neat = new neataptic.Neat(2, 1, null,
         {
             mutation: neataptic.methods.mutation.ALL,
-            popsize: 10,
-            elitism: Math.round(0.2 * 10),
+            popsize: 100,
+            elitism: Math.round(0.1 * 100),
             network: new neataptic.architect.Random(2, 6, 1)
         }
     );
@@ -192,30 +202,36 @@ let iaInit = () => {
 };
 
 let iaStart = () => {
-    players = [];
-    highestScore = 0;
-
-    for(let genome in neat.population){
-        genome = neat.population[genome];
+    start();
+    pop = [];
+    for(let genome of neat.population){
+        //genome = neat.population[genome];
         let birdo = new Player(false, group, genome);
-
-        
 
         birdo.body.isStatic = true;
         setTimeout(() => {
             birdo.body.isStatic = false;
             Body.setVelocity(birdo.body, {x: 0, y: Math.random() * -10})
 
-        }, 4000);
+        }, 3000);
+        pop.push(birdo);
+
+
     }
-    setInterval(() => {neat.population.map((el)=>{el.ia()})}, 10);
+    World.add(world, pop.map(el => {return el.body}));
 };
-
 let iaEnd = () => {
-    //clearInterval(intervalIA);
-    console.log('Generation:', neat.generation, '- average score:', neat.getAverage());
-
     neat.sort();
+    pop.map(el => {
+        hightestScore < el.brain.score ? hightestScore = el.brain.score: null;
+        el.brain.score = 0;
+    });
+    console.log('Generation:', neat.generation, '- average score:', neat.getAverage() + '- hightest score:' + hightestScore);
+    hightestScore = 0;
+
+    pop = [];
+
+
     let newPopulation = [];
 
     // Elitism
@@ -233,12 +249,10 @@ let iaEnd = () => {
     neat.mutate();
 
     neat.generation++;
+    iaStart();
 };
 
-iaInit();
-
 start();
-
-
+iaInit();
 
 
