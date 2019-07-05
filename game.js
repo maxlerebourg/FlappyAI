@@ -45,9 +45,9 @@ let render = Render.create({
     options: {
         width: config.width,
         height: config.height,
-        wireframes: !false,
+        wireframes:false,
         showAngleIndicator: false,
-        background: config.sky_color
+        background: './background.png'
     }
 });
 setTimeout(function () {
@@ -85,7 +85,13 @@ let createWalls = () => {
         y1, 
         config.pipe_width, 
         h1, {
-            render: {fillStyle: config.pipe_color},
+            render: {
+                fillStyle: config.pipe_color,
+                sprite: {
+                        texture: './pipeT.png',
+                        yOffset: h1 / 500 - .1,
+                }
+            },
             isStatic: true,
             id: Math.floor(Math.random() * 1000) + 10000,
             alive: true,
@@ -96,7 +102,13 @@ let createWalls = () => {
         y2, 
         config.pipe_width, 
         h2, {
-            render: {fillStyle: config.pipe_color},
+            render: {
+                fillStyle: config.pipe_color,
+                sprite: {
+                        texture: './pipeM.png',
+                        yOffset: - h2 / 500 + .1,
+                }
+            },
             isStatic: true,
             id: Math.floor(Math.random() * 1000) + 10000,
             alive: false,
@@ -186,7 +198,7 @@ document.onkeydown = function (e) {
                     clearInterval(intervalGame);
                     clearInterval(intervalWalls);
                     intervalGame = setInterval(ia, 50);
-                    intervalWalls = setInterval(createWalls, 3500);
+                    intervalWalls = setInterval(createWalls, 2500);
                 }
                 break;
         }
@@ -197,7 +209,7 @@ let start = () => {
 
     pipes = [];
     clearInterval(intervalWalls);
-    intervalWalls = setInterval(createWalls, 3500);
+    intervalWalls = setInterval(createWalls, 2500);
 
 
     World.add(world, [
@@ -206,6 +218,7 @@ let start = () => {
             isStatic: true,
             id: Math.floor(Math.random() * 1000) + 10000,
             render: {
+                visible: false,
                 fillStyle: config.ground_color,
             },
         }),
@@ -213,6 +226,7 @@ let start = () => {
             isStatic: true,
             id: Math.floor(Math.random() * 1000) + 10000,
             render: {
+                visible: false,
                 fillStyle: config.ground_color,
             },
         }),
@@ -246,14 +260,14 @@ let iaStart = () => {
         setTimeout(() => {
             birdo.body.isStatic = false;
             Body.setVelocity(birdo.body, {x: 0, y: Math.random() * - 10 + 5})
-        }, 5000);
+        }, 3000);
         pop.push(birdo);
 
 
     }
     intervalGame = setTimeout(() => {
         intervalGame = setInterval(ia, 50);
-    }, 5000);
+    }, 3000);
     World.add(world, pop.map(el => {return el.body}));
 
 };
@@ -267,10 +281,9 @@ let iaEnd = () => {
     
     
     hightestScore = 0;
-
+    
     pop = [];
 
-    pop.map(el => {el.brain.score = 0;});
 
     let newPopulation = [];
 

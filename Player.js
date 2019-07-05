@@ -8,7 +8,12 @@ class Player{
 		this.brain.score = 0;
         this.body = Bodies.circle(150, config.height / 2, config.bird_width, {
             render: {
-                fillStyle: config.bird_color
+                fillStyle: config.bird_color,
+                sprite: {
+                    texture: './flappy.png',
+                    xScale: .4,
+                    yScale: .4,
+				}
             },
             id: Math.floor(Math.random() * 1000),
             alive: true,
